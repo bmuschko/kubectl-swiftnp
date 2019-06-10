@@ -1,0 +1,47 @@
+package cmd
+
+import (
+	"errors"
+	"fmt"
+	"github.com/spf13/cobra"
+	"io"
+)
+
+const appLabel = "kubectl server-version"
+
+var version string
+
+// SetVersion set the application version for consumption in the output of the command.
+func SetVersion(v string) {
+	version = v
+}
+
+type versionCmd struct {
+	out io.Writer
+}
+
+func newVersionCommand(out io.Writer) *cobra.Command {
+	version := &versionCmd{
+		out: out,
+	}
+
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "print the version number and exit",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 0 {
+				return errors.New("this command does not accept arguments")
+			}
+			return version.run()
+		},
+	}
+	return cmd
+}
+
+func (v *versionCmd) run() error {
+	_, err := fmt.Fprintf(v.out, "%s %s\n", appLabel, version)
+	if err != nil {
+		return err
+	}
+	return nil
+}
