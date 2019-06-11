@@ -2,14 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/bmuschko/kubectl-swiftnp/client"
 	"github.com/gosuri/uitable"
 	"github.com/spf13/cobra"
 	"io"
-	v1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	"strings"
 )
 
@@ -26,7 +26,7 @@ func newNetworkPolicyListCommand(streams genericclioptions.IOStreams) *cobra.Com
 		Use:   "list [flags]",
 		Short: "list Network Policies",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientset, err := createClientset()
+			clientset, err := client.CreateClientset()
 			if err != nil {
 				return err
 			}
@@ -39,26 +39,8 @@ func newNetworkPolicyListCommand(streams genericclioptions.IOStreams) *cobra.Com
 	return cmd
 }
 
-func createClientset() (*kubernetes.Clientset, error) {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-
-	config, err := kubeConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset, nil
-}
-
 func (a *networkPolicyListCmd) run() error {
-	nps, err := a.collectNetworkPolicies()
+	nps, err := client.CollectNetworkPolicies(a.clientset, a.namespace)
 	if err != nil {
 		return err
 	}
@@ -71,17 +53,18 @@ func (a *networkPolicyListCmd) run() error {
 	return nil
 }
 
-func (a *networkPolicyListCmd) printNetworkPolicies(nps *v1.NetworkPolicyList) error {
+func (a *networkPolicyListCmd) printNetworkPolicies(nps *networkingv1.NetworkPolicyList) error {
 	if len(nps.Items) > 0 {
 		table := uitable.New()
 		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS")
 		for _, np := range nps.Items {
-			selectedPods, err := a.collectSelectedPods(np.Spec.PodSelector)
+			selectedPods, err := client.CollectPodsByLabelSelector(a.clientset, a.namespace, np.Spec.PodSelector)
 			if err != nil {
 				return err
 			}
+			podNames := podListToStringArray(selectedPods)
 			policyTypes := policyTypesToStruct(np.Spec.PolicyTypes)
-			table.AddRow(np.Name, booleanIcon(policyTypes.ingress), booleanIcon(policyTypes.egress), podsToString(selectedPods))
+			table.AddRow(np.Name, booleanIcon(policyTypes.ingress), booleanIcon(policyTypes.egress), joinPodNames(podNames))
 		}
 		fmt.Fprintln(a.out, table)
 	} else {
@@ -91,62 +74,28 @@ func (a *networkPolicyListCmd) printNetworkPolicies(nps *v1.NetworkPolicyList) e
 	return nil
 }
 
-func (a *networkPolicyListCmd) collectNetworkPolicies() (*v1.NetworkPolicyList, error) {
-	npi := a.clientset.NetworkingV1().NetworkPolicies(a.namespace)
-
-	var label, field string
-	listOptions := metav1.ListOptions{
-		LabelSelector: label,
-		FieldSelector: field,
-	}
-	nps, err := npi.List(listOptions)
-	if err != nil {
-		return nil, err
-	}
-	return nps, nil
-}
-
-func (a *networkPolicyListCmd) collectSelectedPods(podSelector metav1.LabelSelector) ([]string, error) {
-	podi := a.clientset.CoreV1().Pods(a.namespace)
-	var field string
-	listOptions := metav1.ListOptions{
-		LabelSelector: podSelectorToString(podSelector),
-		FieldSelector: field,
-	}
-	pods, err := podi.List(listOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	var selectedPods []string
-	for _, p := range pods.Items {
-		selectedPods = append(selectedPods, p.Name)
-	}
-	return selectedPods, nil
-}
-
-func policyTypesToStruct(pts []v1.PolicyType) NetworkPolicyType {
+func policyTypesToStruct(pts []networkingv1.PolicyType) NetworkPolicyType {
 	allTypes := NetworkPolicyType{}
 	for _, pt := range pts {
-		if pt == v1.PolicyTypeIngress {
+		if pt == networkingv1.PolicyTypeIngress {
 			allTypes.ingress = true
 		}
-		if pt == v1.PolicyTypeEgress {
+		if pt == networkingv1.PolicyTypeEgress {
 			allTypes.egress = true
 		}
 	}
 	return allTypes
 }
 
-func podSelectorToString(ls metav1.LabelSelector) string {
-	var labels []string
-	for key, val := range ls.MatchLabels {
-		labels = append(labels, fmt.Sprintf("%s=%s", key, val))
+func podListToStringArray(pods *corev1.PodList) []string {
+	var selectedPods []string
+	for _, p := range pods.Items {
+		selectedPods = append(selectedPods, p.Name)
 	}
-	return strings.Join(labels, ", ")
+	return selectedPods
 }
 
-func podsToString(podNames []string) string {
+func joinPodNames(podNames []string) string {
 	return strings.Join(podNames, ", ")
 }
 
