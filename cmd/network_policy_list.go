@@ -57,25 +57,54 @@ func (a *networkPolicyListCmd) run() error {
 	}
 	nps, err := npi.List(listOptions)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	a.printNetworkPolicies(nps)
+	err = a.printNetworkPolicies(clientset, nps)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (a *networkPolicyListCmd) printNetworkPolicies(nps *v1.NetworkPolicyList) {
+func (a *networkPolicyListCmd) printNetworkPolicies(clientset *kubernetes.Clientset, nps *v1.NetworkPolicyList) error {
 	if len(nps.Items) > 0 {
 		table := uitable.New()
-		table.AddRow("NAME", "INGRESS", "EGRESS", "POD SELECTOR")
+		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS")
 		for _, np := range nps.Items {
+			selectedPods, err := collectSelectedPods(clientset, a.namespace, np.Spec.PodSelector)
+			if err != nil {
+				return err
+			}
 			policyTypes := policyTypesToStruct(np.Spec.PolicyTypes)
-			table.AddRow(np.Name, booleanIcon(policyTypes.ingress), booleanIcon(policyTypes.egress), podSelectorToString(np.Spec.PodSelector))
+			table.AddRow(np.Name, booleanIcon(policyTypes.ingress), booleanIcon(policyTypes.egress), podsToString(selectedPods))
 		}
 		fmt.Fprintln(a.out, table)
 	} else {
 		fmt.Println("No resources found.")
 	}
+
+	return nil
+}
+
+func collectSelectedPods(clientset *kubernetes.Clientset, namespace string, podSelector metav1.LabelSelector) ([]string, error) {
+	podi := clientset.CoreV1().Pods(namespace)
+	var field string
+	listOptions := metav1.ListOptions{
+		LabelSelector: podSelectorToString(podSelector),
+		FieldSelector: field,
+	}
+	pods, err := podi.List(listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	var selectedPods []string
+	for _, p := range pods.Items {
+		selectedPods = append(selectedPods, p.Name)
+	}
+	return selectedPods, nil
 }
 
 func policyTypesToStruct(pts []v1.PolicyType) NetworkPolicyType {
@@ -99,6 +128,10 @@ func podSelectorToString(ls metav1.LabelSelector) string {
 	return strings.Join(labels, ", ")
 }
 
+func podsToString(podNames []string) string {
+	return strings.Join(podNames, ", ")
+}
+
 func booleanIcon(flag bool) string {
 	if flag {
 		return "✔"
@@ -109,5 +142,5 @@ func booleanIcon(flag bool) string {
 
 type NetworkPolicyType struct {
 	ingress bool
-	egress bool
+	egress  bool
 }
