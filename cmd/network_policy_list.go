@@ -23,13 +23,13 @@ func newNetworkPolicyListCommand(streams genericclioptions.IOStreams) *cobra.Com
 
 	cmd := &cobra.Command{
 		Use:   "list [flags]",
-		Short: "list network policies",
+		Short: "list Network Policies",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list.run()
 		},
 	}
 
-	cmd.PersistentFlags().StringVarP(&list.namespace, "namespace", "n", "default", "the namespace used for querying for network policies")
+	cmd.PersistentFlags().StringVarP(&list.namespace, "namespace", "n", "default", "the namespace used for querying for Network Policies")
 	return cmd
 }
 
