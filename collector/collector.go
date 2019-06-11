@@ -32,7 +32,7 @@ func CollectNetworkPolicies(namespace string) ([]NetworkPolicy, error) {
 
 	for _, np := range nps.Items {
 		networkPolicy := NetworkPolicy{Name: np.Name, PolicyType: policyTypesToStruct(np.Spec.PolicyTypes)}
-		selectedPods, err := client.GetPodsByLabelSelector(clientset, namespace, np.Spec.PodSelector)
+		selectedPods, err := client.GetPodsByLabelSelector(clientset, namespace, &np.Spec.PodSelector)
 		if err != nil {
 			return nil, err
 		}
