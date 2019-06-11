@@ -36,7 +36,7 @@ func CollectNetworkPolicies(namespace string) ([]NetworkPolicy, error) {
 		if err != nil {
 			return nil, err
 		}
-		networkPolicy.SelectedPodNames = podListToString(selectedPods)
+		networkPolicy.SelectedPodNames = podListToNames(selectedPods)
 		networkPolicies = append(networkPolicies, networkPolicy)
 	}
 
@@ -56,7 +56,7 @@ func policyTypesToStruct(pts []networkingv1.PolicyType) NetworkPolicyType {
 	return allTypes
 }
 
-func podListToString(pods *corev1.PodList) []string {
+func podListToNames(pods *corev1.PodList) []string {
 	var selectedPods []string
 	for _, p := range pods.Items {
 		selectedPods = append(selectedPods, p.Name)
