@@ -58,14 +58,7 @@ func createClientset() (*kubernetes.Clientset, error) {
 }
 
 func (a *networkPolicyListCmd) run() error {
-	npi := a.clientset.NetworkingV1().NetworkPolicies(a.namespace)
-
-	var label, field string
-	listOptions := metav1.ListOptions{
-		LabelSelector: label,
-		FieldSelector: field,
-	}
-	nps, err := npi.List(listOptions)
+	nps, err := a.collectNetworkPolicies()
 	if err != nil {
 		return err
 	}
@@ -83,7 +76,7 @@ func (a *networkPolicyListCmd) printNetworkPolicies(nps *v1.NetworkPolicyList) e
 		table := uitable.New()
 		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS")
 		for _, np := range nps.Items {
-			selectedPods, err := collectSelectedPods(a.clientset, a.namespace, np.Spec.PodSelector)
+			selectedPods, err := a.collectSelectedPods(np.Spec.PodSelector)
 			if err != nil {
 				return err
 			}
@@ -98,8 +91,23 @@ func (a *networkPolicyListCmd) printNetworkPolicies(nps *v1.NetworkPolicyList) e
 	return nil
 }
 
-func collectSelectedPods(clientset *kubernetes.Clientset, namespace string, podSelector metav1.LabelSelector) ([]string, error) {
-	podi := clientset.CoreV1().Pods(namespace)
+func (a *networkPolicyListCmd) collectNetworkPolicies() (*v1.NetworkPolicyList, error) {
+	npi := a.clientset.NetworkingV1().NetworkPolicies(a.namespace)
+
+	var label, field string
+	listOptions := metav1.ListOptions{
+		LabelSelector: label,
+		FieldSelector: field,
+	}
+	nps, err := npi.List(listOptions)
+	if err != nil {
+		return nil, err
+	}
+	return nps, nil
+}
+
+func (a *networkPolicyListCmd) collectSelectedPods(podSelector metav1.LabelSelector) ([]string, error) {
+	podi := a.clientset.CoreV1().Pods(a.namespace)
 	var field string
 	listOptions := metav1.ListOptions{
 		LabelSelector: podSelectorToString(podSelector),
