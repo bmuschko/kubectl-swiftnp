@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/bmuschko/kubectl-swiftnp/collector"
+	"github.com/bmuschko/kubectl-swiftnp/renderer"
 	"github.com/gosuri/uitable"
 	"github.com/spf13/cobra"
 	"io"
@@ -45,7 +46,7 @@ func (a *networkPolicyListCmd) printNetworkPolicies(nps []collector.NetworkPolic
 		table := uitable.New()
 		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS")
 		for _, np := range nps {
-			table.AddRow(np.Name, booleanIcon(np.PolicyType.Ingress), booleanIcon(np.PolicyType.Egress), joinPodNames(np.SelectedPodNames))
+			table.AddRow(np.Name, renderer.BooleanIcon(np.PolicyType.Ingress), renderer.BooleanIcon(np.PolicyType.Egress), joinPodNames(np.SelectedPodNames))
 		}
 		fmt.Fprintln(a.out, table)
 	} else {
@@ -55,12 +56,4 @@ func (a *networkPolicyListCmd) printNetworkPolicies(nps []collector.NetworkPolic
 
 func joinPodNames(podNames []string) string {
 	return strings.Join(podNames, ", ")
-}
-
-func booleanIcon(flag bool) string {
-	if flag {
-		return "✔"
-	}
-
-	return "✖"
 }
