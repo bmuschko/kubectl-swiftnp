@@ -15,6 +15,7 @@ import (
 
 type networkPolicyListCmd struct {
 	out       io.Writer
+	clientset *kubernetes.Clientset
 	namespace string
 }
 
@@ -25,6 +26,11 @@ func newNetworkPolicyListCommand(streams genericclioptions.IOStreams) *cobra.Com
 		Use:   "list [flags]",
 		Short: "list Network Policies",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			clientset, err := createClientset()
+			if err != nil {
+				return err
+			}
+			list.clientset = clientset
 			return list.run()
 		},
 	}
@@ -33,22 +39,26 @@ func newNetworkPolicyListCommand(streams genericclioptions.IOStreams) *cobra.Com
 	return cmd
 }
 
-func (a *networkPolicyListCmd) run() error {
+func createClientset() (*kubernetes.Clientset, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 
 	config, err := kubeConfig.ClientConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	npi := clientset.NetworkingV1().NetworkPolicies(a.namespace)
+	return clientset, nil
+}
+
+func (a *networkPolicyListCmd) run() error {
+	npi := a.clientset.NetworkingV1().NetworkPolicies(a.namespace)
 
 	var label, field string
 	listOptions := metav1.ListOptions{
@@ -60,7 +70,7 @@ func (a *networkPolicyListCmd) run() error {
 		return err
 	}
 
-	err = a.printNetworkPolicies(clientset, nps)
+	err = a.printNetworkPolicies(nps)
 	if err != nil {
 		return err
 	}
@@ -68,12 +78,12 @@ func (a *networkPolicyListCmd) run() error {
 	return nil
 }
 
-func (a *networkPolicyListCmd) printNetworkPolicies(clientset *kubernetes.Clientset, nps *v1.NetworkPolicyList) error {
+func (a *networkPolicyListCmd) printNetworkPolicies(nps *v1.NetworkPolicyList) error {
 	if len(nps.Items) > 0 {
 		table := uitable.New()
 		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS")
 		for _, np := range nps.Items {
-			selectedPods, err := collectSelectedPods(clientset, a.namespace, np.Spec.PodSelector)
+			selectedPods, err := collectSelectedPods(a.clientset, a.namespace, np.Spec.PodSelector)
 			if err != nil {
 				return err
 			}
