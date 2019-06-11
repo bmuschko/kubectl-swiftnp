@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func CollectPodsByLabelSelector(clientset *kubernetes.Clientset, namespace string, podSelector metav1.LabelSelector) (*corev1.PodList, error) {
+func GetPodsByLabelSelector(clientset *kubernetes.Clientset, namespace string, podSelector metav1.LabelSelector) (*corev1.PodList, error) {
 	podi := clientset.CoreV1().Pods(namespace)
 	var field string
 	listOptions := metav1.ListOptions{

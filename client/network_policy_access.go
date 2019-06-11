@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func CollectNetworkPolicies(clientset *kubernetes.Clientset, namespace string) (*networkingv1.NetworkPolicyList, error) {
+func GetNetworkPolicies(clientset *kubernetes.Clientset, namespace string) (*networkingv1.NetworkPolicyList, error) {
 	npi := clientset.NetworkingV1().NetworkPolicies(namespace)
 
 	var label, field string
