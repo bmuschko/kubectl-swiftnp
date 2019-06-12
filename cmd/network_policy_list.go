@@ -44,9 +44,9 @@ func (a *networkPolicyListCmd) run() error {
 func (a *networkPolicyListCmd) printNetworkPolicies(nps []collector.NetworkPolicy) {
 	if len(nps) > 0 {
 		table := uitable.New()
-		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS")
+		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS", "FROM-COUNT", "TO-COUNT")
 		for _, np := range nps {
-			table.AddRow(np.Name, renderer.BooleanIcon(np.PolicyType.Ingress), renderer.BooleanIcon(np.PolicyType.Egress), joinPodNames(np.SelectedPodNames))
+			table.AddRow(np.Name, renderer.BooleanIcon(np.PolicyType.Ingress), renderer.BooleanIcon(np.PolicyType.Egress), joinStrings(np.SelectedPodNames), np.FromCount, np.ToCount)
 		}
 		fmt.Fprintln(a.out, table)
 	} else {
@@ -54,6 +54,6 @@ func (a *networkPolicyListCmd) printNetworkPolicies(nps []collector.NetworkPolic
 	}
 }
 
-func joinPodNames(podNames []string) string {
-	return strings.Join(podNames, ", ")
+func joinStrings(allStrings []string) string {
+	return strings.Join(allStrings, ", ")
 }

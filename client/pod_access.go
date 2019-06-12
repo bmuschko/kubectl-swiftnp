@@ -8,9 +8,13 @@ import (
 
 func GetPodsByLabelSelector(clientset *kubernetes.Clientset, namespace string, podSelector *metav1.LabelSelector) (*corev1.PodList, error) {
 	podi := clientset.CoreV1().Pods(namespace)
+	sel, err := massagePodSelector(podSelector)
+	if err != nil {
+		return nil, err
+	}
 	var field string
 	listOptions := metav1.ListOptions{
-		LabelSelector: metav1.FormatLabelSelector(podSelector),
+		LabelSelector: sel,
 		FieldSelector: field,
 	}
 	pods, err := podi.List(listOptions)
@@ -18,4 +22,18 @@ func GetPodsByLabelSelector(clientset *kubernetes.Clientset, namespace string, p
 		return nil, err
 	}
 	return pods, nil
+}
+
+func massagePodSelector(podSelector *metav1.LabelSelector) (string, error) {
+	selector, err := metav1.LabelSelectorAsSelector(podSelector)
+	if err != nil {
+		return "", err
+	}
+
+	l := selector.String()
+	if len(l) == 0 {
+		return "", nil
+	}
+
+	return metav1.FormatLabelSelector(podSelector), nil
 }
