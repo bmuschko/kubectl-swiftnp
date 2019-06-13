@@ -52,15 +52,15 @@ workflows:
   build_and_test:
     jobs:
       - download
-      - build
+      - build:
           requires:
             - download
-      - test
+      - test:
           requires:
             - build
-      - code-quality
+      - code-quality:
           requires:
             - test
-      - release
+      - release:
           requires:
             - code-quality
