@@ -4,7 +4,7 @@ kubectl plugin for rendering details of Network Policies
 
 == Intro
 
-Listing the Network Policies in a namespaces provides little information on the Pods they apply to and the rules they specify.
+Listing all Network Policies in a Namespace provides little information about the Pods they apply to and the rules they specify.
 The following command list all Network Policies describes as examples in the https://kubernetes.io/docs/concepts/services-networking/network-policies/[Kubernetes documentation].
 
 [source,bash]
