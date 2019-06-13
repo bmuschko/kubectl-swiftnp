@@ -1,0 +1,55 @@
+= kubectl swiftnp image:https://circleci.com/gh/bmuschko/kubectl-swiftnp.svg?style=svg["CircleCI", link="https://circleci.com/gh/bmuschko/kubectl-swiftnp"] image:https://goreportcard.com/badge/github.com/bmuschko/kubectl-swiftnp["Go Report Card", link="https://goreportcard.com/report/github.com/bmuschko/kubectl-swiftnp"]
+
+A simple kubectl plugin for displaying the Kubernetes server version.
+This project is meant to demonstrate the use of the Go-based Kubernetes client API invoked from a kubectl plugin.
+Therefore, the plugin has not been registered with the kubectl plugin manager https://github.com/kubernetes-sigs/krew[krew].
+
+## Building the binary from source
+
+The project requires Go 1.11 or higher as dependencies are defined with the help of Go Modules.
+First, activate Go Modules by setting the relevant environment variable.
+Next, create the platform-specific binary with the `build` command.
+
+[source,bash]
+----
+$ export GO111MODULES=on
+$ go build -o kubectl-swiftnp
+----
+
+Binaries for a wide range of other platforms can be created with the help of https://github.com/goreleaser/goreleaser[GoReleaser].
+
+[source,bash]
+----
+$ goreleaser release --skip-validate --snapshot --rm-dist
+----
+
+To release a new version of the binaries to GitHub Releases, create a Git tag and remove the relevant flags in the command above.
+
+== Installation
+
+The binary must be placed on the `$PATH` named `kubectl-swiftnp`. Ensure that the binary has execution permissions.
+For more information, see the https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/[official documentation on kubectl plugins].
+
+== Usage
+
+Run the command `swiftnp` with the subcommand `list` to render detailed information about Network Policies.
+
+[source,bash]
+----
+$ kubectl swiftnp list
+NAME                   	SELECTED-PODS  	INGRESS-POLICY	EGRESS-POLICY	INGRESS-RULE	EGRESS-RULE	FROM-COUNT	TO-COUNT
+allow-all-egress       	frontend, mypod	✖            	✔           	✖              	✔          	0         	0
+allow-all-ingress      	frontend, mypod	✔            	✖           	✔              	✖          	0         	0
+deny-all-egress        	frontend, mypod	✖            	✔           	✖              	✖          	0         	0
+deny-all-ingress       	frontend, mypod	✔            	✖           	✖              	✖          	0         	0
+deny-all-ingress-egress	frontend, mypod	✔            	✔           	✖              	✖          	0         	0
+test-network-policy    	mypod          	✔            	✔           	✔              	✔          	3         	1
+----
+
+The subcommand `version` renders the version of the released binary.
+
+[source,bash]
+----
+$ kubectl swiftnp version
+kubectl swiftnp v0.2.0
+----
