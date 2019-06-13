@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-const appLabel = "kubectl server-version"
+const appLabel = "kubectl swiftnp"
 
 var version string
 
