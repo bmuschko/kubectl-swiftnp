@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"io"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"strings"
 )
 
 type networkPolicyListCmd struct {
@@ -44,9 +43,9 @@ func (a *networkPolicyListCmd) run() error {
 func (a *networkPolicyListCmd) printNetworkPolicies(nps []collector.NetworkPolicy) {
 	if len(nps) > 0 {
 		table := uitable.New()
-		table.AddRow("NAME", "INGRESS", "EGRESS", "SELECTED-PODS", "FROM-COUNT", "TO-COUNT")
+		table.AddRow("NAME", "SELECTED-PODS", "INGRESS-POLICY", "EGRESS-POLICY", "INGRESS-RULE", "EGRESS-RULE", "FROM-COUNT", "TO-COUNT")
 		for _, np := range nps {
-			table.AddRow(np.Name, renderer.BooleanIcon(np.PolicyType.Ingress), renderer.BooleanIcon(np.PolicyType.Egress), joinStrings(np.SelectedPodNames), np.FromCount, np.ToCount)
+			table.AddRow(np.Name, renderPodNames(np.SelectedPodNames), renderBoolean(np.PolicyType.Ingress), renderBoolean(np.PolicyType.Egress), renderBoolean(np.IngressRule), renderBoolean(np.EgressRule), np.FromCount, np.ToCount)
 		}
 		fmt.Fprintln(a.out, table)
 	} else {
@@ -54,6 +53,14 @@ func (a *networkPolicyListCmd) printNetworkPolicies(nps []collector.NetworkPolic
 	}
 }
 
-func joinStrings(allStrings []string) string {
-	return strings.Join(allStrings, ", ")
+func renderPodNames(value []string) string {
+	return renderLimitedString(renderer.JoinStrings(value))
+}
+
+func renderLimitedString(value string) string {
+	return renderer.LimitString(value, 30)
+}
+
+func renderBoolean(value bool) string {
+	return renderer.BooleanIcon(value)
 }

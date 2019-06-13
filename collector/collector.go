@@ -10,6 +10,8 @@ type NetworkPolicy struct {
 	Name             string
 	PolicyType       NetworkPolicyType
 	SelectedPodNames []string
+	IngressRule      bool
+	EgressRule       bool
 	FromCount        int
 	ToCount          int
 }
@@ -41,10 +43,12 @@ func CollectNetworkPolicies(namespace string) ([]NetworkPolicy, error) {
 		networkPolicy.SelectedPodNames = podListToNames(selectedPods)
 
 		for _, i := range np.Spec.Ingress {
+			networkPolicy.IngressRule = true
 			networkPolicy.FromCount = networkPolicy.FromCount + len(i.From)
 		}
 
 		for _, e := range np.Spec.Egress {
+			networkPolicy.EgressRule = true
 			networkPolicy.ToCount = networkPolicy.ToCount + len(e.To)
 		}
 
