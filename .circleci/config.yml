@@ -1,0 +1,34 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12.5
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+      - run:
+          name: Download Dependencies
+          command: go mod download
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - run:
+          name: Compile Packages and Dependencies
+          command: go build
+      - run:
+          name: Unit Tests
+          command: go test ./... -coverprofile=coverage.txt -covermode=count || bash <(curl -s https://codecov.io/bash)
+      - run:
+          name: Code Quality Analysis
+          command: |
+            curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s -- -b /go/bin v1.12.5
+            golangci-lint run
+      - run:
+          name: Release Binaries
+          command: |
+            if [ "$CIRCLE_TAG" ]; then
+              curl -sL https://git.io/goreleaser | bash
+            fi
